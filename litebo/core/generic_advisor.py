@@ -1,5 +1,6 @@
 import abc
 import numpy as np
+from typing import Iterable
 
 from litebo.utils.util_funcs import get_types
 from litebo.utils.logging_utils import get_logger
@@ -310,14 +311,18 @@ class Advisor(object, metaclass=abc.ABCMeta):
             if self.num_constraints > 0:
                 # If infeasible, set observation to the largest found objective value
                 if any(c > 0 for c in constraints):
-                    objs = tuple(np.max(self.perfs, axis=0)) if self.perfs else objs
+                    objs = [max(self.perfs)] if self.perfs else objs
                 # Update constraint perfs regardless of feasibility
                 for i in range(self.num_constraints):
                     self.constraint_perfs[i].append(bilog(constraints[i]))
 
             self.configurations.append(config)
-            self.perfs.append(objs)
-            self.history_container.add(config, objs)
+            if self.num_objs == 1 and isinstance(objs, Iterable):
+                self.perfs.append(objs[0])
+                self.history_container.add(config, objs[0])
+            else:
+                self.perfs.append(objs)
+                self.history_container.add(config, objs)
 
             self.perc = np.percentile(self.perfs, self.scale_perc, axis=0)
             self.min_y = np.min(self.perfs, axis=0)
